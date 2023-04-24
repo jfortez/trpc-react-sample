@@ -1,24 +1,18 @@
-import { PrismaClient } from "@prisma/client";
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { z } from "zod";
 import { publicProcedure, router } from "./trpc";
 import { createContext } from "./context";
 import cors from "cors";
 
-const prisma = new PrismaClient();
-
 const appRouter = router({
   userList: publicProcedure.query(async ({ ctx }) => {
-    const users = await prisma.user.findMany();
-    return users;
+    return ctx.prisma.user.findMany();
   }),
   getPosts: publicProcedure.query(async ({ ctx }) => {
-    const posts = await prisma.post.findMany();
-    return posts;
+    return ctx.prisma.post.findMany();
   }),
-  userById: publicProcedure.input(z.number()).query(async (opts) => {
-    const { input } = opts;
-    const user = await prisma.user.findUnique({
+  userById: publicProcedure.input(z.number()).query(async ({ input, ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
       where: {
         id: input,
       },
@@ -27,11 +21,10 @@ const appRouter = router({
   }),
   userCreate: publicProcedure
     .input(z.object({ email: z.string().email(), name: z.string() }))
-    .mutation(async (opts) => {
-      const { input } = opts;
+    .mutation(async ({ input, ctx }) => {
       const { name, email } = input;
       const data = { name, email };
-      const user = await prisma.user.create({
+      const user = await ctx.prisma.user.create({
         data,
       });
       return user;
@@ -45,11 +38,10 @@ const appRouter = router({
         published: z.boolean(),
       })
     )
-    .mutation(async (opts) => {
-      const { input } = opts;
+    .mutation(async ({ input, ctx }) => {
       const { title, content, authorId, published } = input;
       const data = { title, content, authorId, published };
-      const post = await prisma.post.create({
+      const post = await ctx.prisma.post.create({
         data,
       });
       return post;
